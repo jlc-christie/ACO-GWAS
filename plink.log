@@ -1,0 +1,21 @@
+PLINK v1.90b5.1 64-bit (20 Dec 2017)
+Options in effect:
+  --allow-no-sex
+  --assoc
+  --bed extend_directly_genotyped_binary.bed
+  --bim extend_directly_genotyped_binary.bim
+  --counts
+  --fam extend_directly_genotyped_binary.fam
+  --mpheno 3
+  --pheno phenotypes.txt
+
+Hostname: jamesSP4Linux
+Working directory: /home/james/Documents/Final Year Project
+Start time: Thu Jan 18 16:03:14 2018
+
+Note: --counts flag deprecated.  Use '--assoc counts' instead.
+Random number seed: 1516291394
+7905 MB RAM detected; reserving 3952 MB for main workspace.
+Error: Failed to open extend_directly_genotyped_binary.bed.
+
+End time: Thu Jan 18 16:03:14 2018
