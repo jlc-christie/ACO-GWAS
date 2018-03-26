@@ -110,54 +110,50 @@ int main() {
     }
   }
 
-  // // SNP Loop
-  // for (int i = 0; i < snp_count; i++) {
-  //   int counts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  //
-  //   // Hacky break in code
-  //   // int xyz;
-  //   // cin >> xyz;
-  //   // cout << "\rSNP: " << i;
-  //
-  //   int complete_bytes = individual_count / 4;
-  //   int remaining_bits = 2 * (individual_count % 4);
-  //   bool remainder_exists = remaining_bits > 0;
-  //
-  //   for (int j = 0; j < complete_bytes; j++) {
-  //     char buf[1];
-  //     bed_file.read(buf, 1);
-  //     bitset<8> b = buf[0];
-  //     process_byte(b, 8, counts, j*4, pheno_mask);
-  //   }
-  //
-  //   if (remainder_exists) {
-  //     int pat_no = individual_count - (remaining_bits / 2);
-  //     char buf[1];
-  //     bed_file.read(buf, 1);
-  //     bitset<8> b = buf[0];
-  //     process_byte(b, remaining_bits, counts, pat_no, pheno_mask);
-  //   }
-  //
-  //   // cout << endl;
-  //   // cout << counts[0] << " " << counts[1] << " " << counts[2] << " " << counts[3] << endl;
-  //   // cout << counts[4] << " " << counts[5] << " " << counts[6] << " " << counts[7] << endl;
-  //   // //
-  //   // cout << endl;
-  //   // cout << 2*counts[0] + counts[1] << " " << counts[1] + 2*counts[2] << endl;
-  //   // cout << 2*counts[4] + counts[5] << " " << counts[5] + 2*counts[6] << endl;
-  //   //
-  //   // Calculate Chi-Squared Value
-  //   double chi_squared_val = chi_sq(counts);
-  //   if (chi_squared_val > 20.0) {
-  //     cout << "SNP " << i << " has CHISQ val of " << chi_squared_val << endl;
-  //   }
-  //   // cout << endl << chi_squared_val << endl;
-  //
-  // }
+  // SNP Loop
+  for (int i = 0; i < snp_count; i++) {
+    int counts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
+    // Hacky break in code
+    // int xyz;
+    // cin >> xyz;
+    // cout << "\rSNP: " << i;
 
-  // ACO
-  
+    int complete_bytes = individual_count / 4;
+    int remaining_bits = 2 * (individual_count % 4);
+    bool remainder_exists = remaining_bits > 0;
+
+    for (int j = 0; j < complete_bytes; j++) {
+      char buf[1];
+      bed_file.read(buf, 1);
+      bitset<8> b = buf[0];
+      process_byte(b, 8, counts, j*4, pheno_mask);
+    }
+
+    if (remainder_exists) {
+      int pat_no = individual_count - (remaining_bits / 2);
+      char buf[1];
+      bed_file.read(buf, 1);
+      bitset<8> b = buf[0];
+      process_byte(b, remaining_bits, counts, pat_no, pheno_mask);
+    }
+
+    // cout << endl;
+    // cout << counts[0] << " " << counts[1] << " " << counts[2] << " " << counts[3] << endl;
+    // cout << counts[4] << " " << counts[5] << " " << counts[6] << " " << counts[7] << endl;
+    // //
+    // cout << endl;
+    // cout << 2*counts[0] + counts[1] << " " << counts[1] + 2*counts[2] << endl;
+    // cout << 2*counts[4] + counts[5] << " " << counts[5] + 2*counts[6] << endl;
+    //
+    // Calculate Chi-Squared Value
+    double chi_squared_val = chi_sq(counts);
+    if (chi_squared_val > 20.0) {
+      cout << "SNP " << i << " has CHISQ val of " << chi_squared_val << endl;
+    }
+    // cout << endl << chi_squared_val << endl;
+
+  }
 
 }
 
