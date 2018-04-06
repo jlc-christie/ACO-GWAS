@@ -14,7 +14,7 @@ class GenomeData {
     int pheno_mask[MAX_INDIVIDUAL];
     map<int, int> id_to_pos;
     ifstream* bed_file;
-    char* bin_genotype_data = NULL;
+    char* bin_genotype_data = nullptr;
     bool remainder_exists;
     int total_bytes;
     vector<string> individual_data;

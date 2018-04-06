@@ -23,6 +23,10 @@ GenomeData::~GenomeData() {
   if (GenomeData::bed_file->is_open()) {
     GenomeData::bed_file->close();
   }
+
+  if (GenomeData::bin_genotype_data != NULL) {
+    delete[] GenomeData::bin_genotype_data;
+  }
 }
 
 bool GenomeData::init_individual_data(string filename) {
@@ -223,6 +227,7 @@ void GenomeData::count_snp_alleles(int snp_num, int allele_counts[4]) {
   // small and fast operation so it's worth it to keep code clean and readable
   char snp_buf[GenomeData::total_bytes];
 
+  // If binary data couldn't be loaded in to RAM
   if (GenomeData::bin_genotype_data == NULL) {
     // Seek to start of SNP
     GenomeData::bed_file->seekg(snp_offset);
@@ -231,7 +236,7 @@ void GenomeData::count_snp_alleles(int snp_num, int allele_counts[4]) {
       bitset<8> b = snp_buf[i];
       GenomeData::process_byte(b, 8, counts, i*4, GenomeData::pheno_mask);
     }
-  } else {
+  } else { // If binary data IS in ram
     for (int i = 0; i < complete_bytes; i++) {
       bitset<8> b = GenomeData::bin_genotype_data[snp_offset + i];
       GenomeData::process_byte(b, 8, counts, i*4, GenomeData::pheno_mask);
