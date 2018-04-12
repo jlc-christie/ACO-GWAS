@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <random>
 #include <fstream>
 #include <bitset>
 #include <sstream>
@@ -214,6 +215,28 @@ bool GenomeData::init_phenotype_file(string filename) {
   return true;
 }
 
+void GenomeData::count_pairwise_genotypes(int snp1, int snp2, int counts[32]) {
+  //cout << "in pairwise func with snp1 -> " << snp1 << " and snp2 -> " << snp2 << endl;
+  int snp1_offset = 3 + snp1*total_bytes;
+  int snp2_offset = 3 + snp2*total_bytes;
+  int complete_bytes = remainder_exists ? total_bytes - 1 : total_bytes;
+
+  for (int i = 0; i < complete_bytes; i++) {
+    // cout << "Inside for loop with offsets: " << endl;
+    // cout << "\t1 -> " << snp1_offset << endl;
+    // cout << "\t2 -> " << snp2_offset << endl;
+
+    bitset<8> b1 = bin_genotype_data[snp1_offset + i];
+    bitset<8> b2 = bin_genotype_data[snp2_offset + i];
+
+    // cout << "i -> " << i << endl;
+    // cout << "b1 -> " << b1 << endl;
+    // cout << "b2 -> " << b2 << endl;
+
+    GenomeData::process_byte_pair(b1, b2, 8, counts, i*4, GenomeData::pheno_mask);
+  }
+}
+
 void GenomeData::count_snp_alleles(int snp_num, int allele_counts[4]) {
   /*
   TO DO:
@@ -282,12 +305,160 @@ double GenomeData::chi_sq_val(int counts[4]) {
   return res;
 }
 
+double GenomeData::chi_sq_val_32(int counts[32]) {
+  // cout << "counts:" << endl;
+  // cout << counts[0] << " " << counts[1] << " " << counts[2] << " " << counts[3];
+  // cout << " " << counts[4] << " " << counts[5] << " " << counts[6] << " " << counts[7] << endl;
+  // cout << counts[8] << " " << counts[9] << " " << counts[10] << " " << counts[11];
+  // cout << " " << counts[12] << " " << counts[13] << " " << counts[14] << " " << counts[15] << endl;
+  // cout << counts[16] << " " << counts[17] << " " << counts[18] << " " << counts[19];
+  // cout << " " << counts[20] << " " << counts[21] << " " << counts[22] << " " << counts[23] << endl;
+  // cout << counts[24] << " " << counts[25] << " " << counts[26] << " " << counts[27];
+  // cout << " " << counts[28] << " " << counts[29] << " " << counts[30] << " " << counts[31] << endl;
+
+  // Remove uneeded missing values and cast needed values to doubles
+  double d_counts[18];
+  int counter = 0;
+  for (int i = 0; i < 32; i++) {
+    if ((i+1) % 4 == 0 || ((i > 11) && (i < 16)) || i > 27) {
+      // One of the genotype values is missing
+      continue;
+    } else {
+      d_counts[counter] = double(counts[i]);
+      counter++;
+    }
+  }
+
+  // cout << "d_counts:" << endl;
+  // cout << "\t" << d_counts[0] << " " << d_counts[1] << " " << d_counts[2] << " " << d_counts[3] << " " << d_counts[4] << " " << d_counts[5] << " " << d_counts[6] << " " << d_counts[7] << " " << d_counts[8] << endl;
+  // cout << "\t" << d_counts[9] << " " << d_counts[10] << " " << d_counts[11] << " " << d_counts[12] << " " << d_counts[13] << " " << d_counts[14] << " " << d_counts[15] << " " << d_counts[16] << " " << d_counts[17] << endl;
+
+  double col_totals[9];
+  double row_totals[2];
+  double total;
+
+  // Calculate column totals
+  for (int i = 0; i < 9; i++) {
+    col_totals[i] = d_counts[i] + d_counts[9+i];
+  }
+
+  // Calculate row totals
+  for (int i = 0; i < 2; i++) {
+    row_totals[i] = 0;
+    for (int j = 0; j < 9; j++) {
+      row_totals[i] += d_counts[(i*9)+j];
+    }
+  }
+
+  // Calculate total
+  total = row_totals[0] + row_totals[1];
+
+  double expected[18];
+  for (int i = 0; i < 18; ++i) {
+    expected[i] = 0;
+  }
+
+  // Fill expected value table
+  for (int i = 0; i < 18; i++) {
+    int col = i % 9;
+    int row = (i < 9) ? 0 : 1;
+
+    expected[i] = (col_totals[col] * row_totals[row]) / total;
+  }
+
+  // for (int i = 0; i < 18; ++i) {
+  //   if (i % 9 == 0) {
+  //     cout << endl;
+  //   }
+  //   cout << expected[i] << " ";
+  // }
+  // cout << endl;
+
+  double res = 0.0;
+  for (int i = 0; i < 18; i++) {
+    if (expected[i] == 0) {
+      continue;
+    }
+    res += pow(d_counts[i] - expected[i], 2) / expected[i];
+  }
+
+  return res;
+}
+
 int GenomeData::get_individual_count(void) {
   return GenomeData::individual_count;
 }
 
 int GenomeData::get_snp_count(void) {
   return GenomeData::snp_count;
+}
+
+void GenomeData::roulette_wheel_select(int n, int snps[], double pheremone_vals[]) {
+  // Calculate sum of pheremone over all ant paths
+  double pheremone_sum = 0;
+  for (int i = 0; i < GenomeData::snp_count; i++) {
+    pheremone_sum += pheremone_vals[i];
+  }
+
+  //Generate random number from uniform distribution to represent a SNP
+  static std::random_device rd;
+  static std::mt19937 rng(rd());
+  std::uniform_real_distribution<double> uni(0, pheremone_sum);
+
+  for (int i = 0; i < n; i++) {
+    int snp = -1;
+    bool not_unique = true;
+
+    while (not_unique) {
+      double snp_doub = uni(rng);
+
+      for (int j = 0; j < GenomeData::snp_count; j++) {
+        if (snp_doub <= 0) {
+          snp = j;
+          not_unique = false;
+
+          // Check it's not a duplicate
+          for (int k = 0; k < i; k++) {
+            if (snps[k] == snp) {
+              not_unique = true;
+              int z;
+              cin >> z;
+              break;
+            }
+          }
+
+          if (!not_unique) {
+            snps[i] = snp;
+          }
+
+          break;
+        } else {
+          snp_doub -= pheremone_vals[j];
+        }
+      }
+    }
+  }
+}
+
+void GenomeData::tournament_select(int n, int snps[], int tourn_size, double pheremone_vals[]) {
+  static std::random_device rd;
+  static std::mt19937 rng(rd());
+  std::uniform_int_distribution<int> uni(0, GenomeData::snp_count);
+
+  for (int i = 0; i < n; ++i) {
+    double max_pheromone = 0;
+    int max_pher_snp = 0;
+    for (int j = 0; j < tourn_size; ++j) {
+      int snp = uni(rng);
+      if (pheremone_vals[snp] > max_pheromone) {
+        max_pheromone = pheremone_vals[snp];
+        max_pher_snp = snp;
+      }
+    }
+
+    snps[i] = max_pher_snp;
+  }
+
 }
 
 void GenomeData::process_byte(bitset<8> b, int n, int counts[8],
@@ -321,6 +492,46 @@ void GenomeData::process_byte(bitset<8> b, int n, int counts[8],
       }
 
     }
+  }
+}
+
+int GenomeData::genotype_val(int first_bit, int second_bit) {
+  if (first_bit == 0) {
+    if (second_bit == 0) {
+      // minor homo
+      return 0;
+    } else {
+      // hetero
+      return 1;
+    }
+  } else {
+    if (second_bit == 1) {
+      // major homo
+      return 2;
+    } else {
+      return 3;
+    }
+  }
+}
+
+void GenomeData::process_byte_pair(bitset<8> b1, bitset<8> b2, int n, int counts[32],
+                       int pat_no, int pheno_mask[]) {
+
+  for (int i = 0; i < n; i += 2) {
+    int pat = pat_no + (i/2);
+
+    // Skip these two bits if patient has missing phenotype
+    if (pheno_mask[pat] == 2) {
+      continue;
+    }
+
+    int j = 0;
+    if (pheno_mask[pat]) { j = 16; } // If patient is a control
+
+    j += 4 * genotype_val(b1[i], b1[i+1]);
+    j += genotype_val(b2[i], b2[i+1]);
+
+    counts[j] += 1;
   }
 }
 //
