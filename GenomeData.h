@@ -35,6 +35,7 @@ class GenomeData {
     int get_snp_count();
     void roulette_wheel_select(int n, int snps[], double pheremone_vals[]);
     void tournament_select(int n, int snps[], int tourn_size, double pheremone_vals[]);
+    string get_snp_id(int number);
     static void process_byte(bitset<8> b, int n, int counts[8],
                              int pat_no, int pheno_mask[]);
     static void process_byte_pair(bitset<8> b1, bitset<8> b2, int n,

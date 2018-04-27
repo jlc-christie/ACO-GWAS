@@ -514,6 +514,17 @@ int GenomeData::genotype_val(int first_bit, int second_bit) {
   }
 }
 
+string GenomeData::get_snp_id(int number) {
+  string line = snp_data[number];
+  string buf;
+  stringstream ss(line);
+  vector<string> tokens;
+  while (ss >> buf)
+    tokens.push_back(buf);
+
+  return tokens[1];
+}
+
 void GenomeData::process_byte_pair(bitset<8> b1, bitset<8> b2, int n, int counts[32],
                        int pat_no, int pheno_mask[]) {
 
